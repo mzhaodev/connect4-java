@@ -100,16 +100,6 @@ class Position {
     }
 
     /**
-     * Check whether all slots are filled
-     *
-     * @return true if all slots are filled
-     */
-    boolean areAllSlotsFilled() {
-
-        return moves >= TOTAL_SLOTS;
-    }
-
-    /**
      * @return the number of moves so far in this position
      */
     int getMoves() {
@@ -133,15 +123,11 @@ class Position {
     }
 
     /**
-     * Reset the position to the beginning of the game
+     * @return The number of empty slots in the position
      */
-    void reset() {
+    int getEmptySlots() {
 
-        for (int i = 0; i < COLUMNS; ++i) {
-            Arrays.fill(board[i], SLOT_EMPTY);
-        }
-        Arrays.fill(heights, 0);
-        moves = 0;
+        return Position.TOTAL_SLOTS - getMoves();
     }
 
     @Override

@@ -14,18 +14,21 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class Connect4SolverTest {
 
     private static Stream<Arguments> testSets() {
-        return TestSets.TEST_SETS.entrySet().stream().map(
-            testSet -> Arguments.of(testSet.getValue(), testSet.getKey()));
+
+        return TestSets.TEST_SETS.entrySet().stream().mapMulti((testSet, consumer) -> {
+            consumer.accept(Arguments.of(testSet.getValue(), testSet.getKey(), false));
+            consumer.accept(Arguments.of(testSet.getValue(), testSet.getKey(), true));
+        });
     }
 
-    @ParameterizedTest(name = "{0} {1}")
+    @ParameterizedTest(name = "{0} {1} strong={2}")
     @MethodSource("testSets")
-    void testSolver(String fileName, String ignoredTestSetName) {
+    void testSolver(String fileName, String testSetName, boolean useStrongSolver) {
 
-        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(5), () -> { runTestFile(fileName); });
+        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(5), () -> runTestFile(fileName, useStrongSolver));
     }
 
-    void runTestFile(String fileName) throws IOException {
+    void runTestFile(String fileName, boolean runStrongSolver) throws IOException {
 
         try (InputStream stream = getClass().getResourceAsStream(fileName);
              Scanner scanner = new Scanner(Objects.requireNonNull(stream))) {
@@ -37,12 +40,23 @@ public class Connect4SolverTest {
                 String input = scanner.next();
                 int expectedOutput = scanner.nextInt();
 
-                /* We use a slightly different scoring function than the test set,
-                   but it shouldn't matter because they result in the same move rankings */
-                int output = solver.solve(input);
-                int convertedOutput = output < 0 ? (output - 1) / 2 : (output + 1) / 2;
-                Assertions.assertEquals(expectedOutput, convertedOutput);
+                int output = solver.solve(input, runStrongSolver);
+                checkOutputs(expectedOutput, output, runStrongSolver);
             }
+        }
+    }
+
+    void checkOutputs(int expectedOutput, int output, boolean useStrongSolver) {
+
+        if (useStrongSolver) {
+
+            /* We use a slightly different scoring function than the test set,
+               but it shouldn't affect the search */
+            int convertedOutput = output < 0 ? (output - 1) / 2 : (output + 1) / 2;
+            Assertions.assertEquals(expectedOutput, convertedOutput);
+        } else {
+
+            Assertions.assertEquals(Math.signum(expectedOutput), Math.signum(output));
         }
     }
 }

@@ -1,6 +1,12 @@
 package dev.mzhao.connect4;
 
+/**
+ * This class can be reused to score multiple positions. It is <i>not</i> thread-safe.
+ */
 public class Connect4Solver {
+
+    public static final int SCORE_MIN = -Position.TOTAL_SLOTS;
+    public static final int SCORE_MAX = Position.TOTAL_SLOTS;
 
     private long totalExploredNodes = 0;
 
@@ -10,19 +16,46 @@ public class Connect4Solver {
     }
 
     /**
-     * Solve for the final score of the game if played perfectly from the given position
-     * from the perspective of the next player to move.
+     * @see Connect4Solver#solveStrongly(String)
+     * @see Connect4Solver#solveWeakly(String)
+     */
+    public int solve(String moves, boolean strong) {
+
+        if (strong) {
+
+            return solveStrongly(moves);
+        }
+        return solveWeakly(moves);
+    }
+
+    /**
+     * Solve for the score of the position
+     * @return a number between {@value SCORE_MIN} and {@value SCORE_MAX}
+     */
+    public int solveStrongly(String moves) {
+
+        return solve(moves, SCORE_MIN, SCORE_MAX);
+    }
+
+    /**
+     * Return -1, 0, or 1 for losing, drawn, or winning
+     */
+    public int solveWeakly(String moves) {
+
+        return solve(moves, -1, 1);
+    }
+
+    /**
+     * Solve for the score of a position, clamped to a provided range.
      * @param moves the sequence of moves played so far.<br>e.g. "1123" means the first player
      *     played in the first column, the second player played in the first column, the first
      *     player played in the second column, and the second player played in the third column
-     * @return the score of the position:
-     * <ul>
-     *   <li>0 if the game ends in a draw</li>
-     *   <li>(x+1) if the player will win with x empty slots remaining</li>
-     *   <li>-(x+1) if the player will lose with x empty slots remaining</li>
-     * </ul>
+     * @param min the minimum number to return, must be <= max
+     * @param max the maximum number to return, must be >= min
+     * @return the score of the position, clamped to the inclusive range [min, max]
+     * @throws IllegalArgumentException if moves are invalid
      */
-    public int solve(String moves) {
+    public int solve(String moves, int min, int max) {
 
         Position p = new Position();
         for (int i = 0; i < moves.length(); ++i) {
@@ -34,35 +67,49 @@ public class Connect4Solver {
             }
             p.playMove(col);
         }
-        return solve(p);
+
+        int score = solve(p, min, max);
+        return Math.clamp(score, min, max);
     }
 
-    private int solve(Position p) {
+    private int solve(Position p, int alpha, int beta) {
 
         ++totalExploredNodes;
 
-        if (p.areAllSlotsFilled()) {
+        if (p.getEmptySlots() == 0) {
             return 0;
         }
 
         for (int i = 0; i < Position.COLUMNS; ++i) {
 
             if (p.canPlayMove(i) && p.isWinningMove(i)) {
-                return Position.TOTAL_SLOTS - p.getMoves();
+                return p.getEmptySlots();
             }
         }
 
-        int maxScore = Integer.MIN_VALUE;
+        beta = Math.min(beta, p.getEmptySlots() == 1 ? 0 : p.getEmptySlots() - 2);
+        alpha = Math.max(alpha, -(p.getEmptySlots() - 1));
+
+        if (alpha >= beta) {
+            return beta;
+        }
+
+        int bestScore = alpha;
         for (int i = 0; i < Position.COLUMNS; ++i) {
 
             if (p.canPlayMove(i)) {
 
                 p.playMove(i);
-                maxScore = Math.max(maxScore, -solve(p));
+                int candidateScore = -solve(p, -beta, -bestScore);
                 p.undoMove(i);
+
+                if (candidateScore >= beta) {
+                    return beta;
+                }
+
+                bestScore = Math.max(bestScore, candidateScore);
             }
         }
-
-        return maxScore;
+        return bestScore;
     }
 }
