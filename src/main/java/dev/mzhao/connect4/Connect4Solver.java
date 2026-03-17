@@ -8,6 +8,15 @@ public class Connect4Solver {
     public static final int SCORE_MIN = -Position.TOTAL_SLOTS;
     public static final int SCORE_MAX = Position.TOTAL_SLOTS;
 
+    private static final int[] MOVE_ORDER = new int[Position.COLUMNS];
+    static {
+        int right = Position.COLUMNS / 2;
+        int left = right - 1;
+        for (int i = 0; i < Position.COLUMNS; ++i) {
+            MOVE_ORDER[i] = i % 2 == 0 ? right++ : left--;
+        }
+    }
+
     private long totalExploredNodes = 0;
 
     public long getTotalExploredNodes() {
@@ -95,13 +104,13 @@ public class Connect4Solver {
         }
 
         int bestScore = alpha;
-        for (int i = 0; i < Position.COLUMNS; ++i) {
+        for (int candidateMove : MOVE_ORDER) {
 
-            if (p.canPlayMove(i)) {
+            if (p.canPlayMove(candidateMove)) {
 
-                p.playMove(i);
+                p.playMove(candidateMove);
                 int candidateScore = -solve(p, -beta, -bestScore);
-                p.undoMove(i);
+                p.undoMove(candidateMove);
 
                 if (candidateScore >= beta) {
                     return beta;

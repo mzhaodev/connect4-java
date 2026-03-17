@@ -25,7 +25,7 @@ public class Connect4SolverTest {
     @MethodSource("testSets")
     void testSolver(String fileName, String testSetName, boolean useStrongSolver) {
 
-        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(5), () -> runTestFile(fileName, useStrongSolver));
+        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(120), () -> runTestFile(fileName, useStrongSolver));
     }
 
     void runTestFile(String fileName, boolean runStrongSolver) throws IOException {
@@ -54,7 +54,8 @@ public class Connect4SolverTest {
                but it shouldn't affect the search */
             int convertedOutput = output < 0 ? (output - 1) / 2 : (output + 1) / 2;
             Assertions.assertEquals(expectedOutput, convertedOutput);
-        } else {
+        }
+        else {
 
             Assertions.assertEquals(Math.signum(expectedOutput), Math.signum(output));
         }

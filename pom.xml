@@ -6,7 +6,7 @@
 
     <groupId>dev.mzhao</groupId>
     <artifactId>connect4-java</artifactId>
-    <version>1.4-SNAPSHOT</version>
+    <version>1.5-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
