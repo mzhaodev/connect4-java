@@ -3,17 +3,19 @@ BasedOnStyle: LLVM
 IndentWidth: 4
 ColumnLimit: 120
 BinPackArguments: false
-BinPackParameters: false
+BinPackParameters: OnePerLine
 AllowShortFunctionsOnASingleLine: None
 AllowShortBlocksOnASingleLine: Never
 AllowShortIfStatementsOnASingleLine: Never
 AlignAfterOpenBracket: Align
-AlwaysBreakAfterReturnType: None
+BreakAfterReturnType: Automatic
 PenaltyBreakBeforeFirstCallParameter: 1000
 PenaltyReturnTypeOnItsOwnLine: 1000
 IndentCaseLabels: true
 IndentWrappedFunctionNames: true
-KeepEmptyLinesAtTheStartOfBlocks: true
+KeepEmptyLines:
+  AtStartOfFile: false
+  AtStartOfBlock: true
 MaxEmptyLinesToKeep: 2
 SpaceAfterCStyleCast: true
 SpaceBeforeParens: ControlStatements

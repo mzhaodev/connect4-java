@@ -1,6 +1,6 @@
 package dev.mzhao.connect4;
 
-import java.util.Arrays;
+import java.util.stream.IntStream;
 
 class Position {
 
@@ -8,13 +8,21 @@ class Position {
     static final int ROWS = 6;
     static final int TOTAL_SLOTS = COLUMNS * ROWS;
 
-    private static final int SLOT_EMPTY = 0;
-    private static final int SLOT_PLAYER = 1;
-    private static final int SLOT_OPPONENT = 2;
+    private static final int BITBOARD_ROWS = ROWS + 1;
+    private static final long BITBOARD_EMPTY = 0;
+    private static final long BITBOARD_BOTTOM_ROW =
+        IntStream.range(0, COLUMNS).mapToLong(Position::BOTTOM).reduce(0, Long::sum);
+    private static final long BITBOARD_FIRST_COLUMN = 2 * TOP(0) - 1;
 
-    private final int[][] board = new int[COLUMNS][ROWS];
-    private final int[] heights = new int[COLUMNS];
-    private int moves = 0;
+    /**
+     * Bitmask of the pieces placed by the next player to move
+     */
+    private long board = BITBOARD_EMPTY;
+    /**
+     * Bitmask of the bottom-most empty cell in each column
+     */
+    private long heights = BITBOARD_BOTTOM_ROW;
+    private int numMoves = 0;
 
     /**
      * Whether the provided column is a valid next move
@@ -24,7 +32,7 @@ class Position {
      */
     boolean canPlayMove(int col) {
 
-        return heights[col] < ROWS;
+        return (heights & TOP(col)) == 0;
     }
 
     /**
@@ -34,8 +42,9 @@ class Position {
      */
     void playMove(int col) {
 
-        board[col][heights[col]++] = getWhoseMove();
-        ++moves;
+        board ^= MASK();
+        heights += HEIGHT(col);
+        ++numMoves;
     }
 
     /**
@@ -45,8 +54,9 @@ class Position {
      */
     void undoMove(int col) {
 
-        --moves;
-        board[col][--heights[col]] = SLOT_EMPTY;
+        heights -= HEIGHT(col) >>> 1;
+        board ^= MASK();
+        --numMoves;
     }
 
 
@@ -59,67 +69,25 @@ class Position {
      */
     boolean isWinningMove(int col) {
 
-        return isWinningMove(col, heights[col], 0, 1) //
-            || isWinningMove(col, heights[col], 1, 0) //
-            || isWinningMove(col, heights[col], 1, 1) //
-            || isWinningMove(col, heights[col], 1, -1);
+        long bitboard = board | HEIGHT(col);
+        return checkFourInARow(bitboard, BITBOARD_ROWS)     //
+            || checkFourInARow(bitboard, BITBOARD_ROWS - 1) //
+            || checkFourInARow(bitboard, BITBOARD_ROWS + 1) //
+            || checkFourInARow(bitboard, 1);
     }
 
-    /**
-     * Check whether playing at a location would yield four in a row in a specific direction
-     */
-    private boolean isWinningMove(int col, int row, int dc, int dr) {
+    private static boolean checkFourInARow(long bitboard, int offset) {
 
-        return countPiecesInDirection(col, row, dc, dr) //
-            + countPiecesInDirection(col, row, -dc, -dr)
-            >= 3;
-    }
-
-    private int countPiecesInDirection(int col, int row, int dc, int dr) {
-
-        int pieces = 0;
-        while (true) {
-
-            col += dc;
-            row += dr;
-            if (isValidOccupiedSlot(col, row) && board[col][row] == getWhoseMove()) {
-                ++pieces;
-            }
-            else {
-                return pieces;
-            }
-        }
-    }
-
-    private boolean isValidOccupiedSlot(int col, int row) {
-
-        if (!isValidCol(col)) {
-            return false;
-        }
-        return 0 <= row && row < heights[col];
+        long x = bitboard & (bitboard >>> offset);
+        return (x & (x >>> (2 * offset))) != BITBOARD_EMPTY;
     }
 
     /**
      * @return the number of moves so far in this position
      */
-    int getMoves() {
+    int getNumMoves() {
 
-        return moves;
-    }
-
-    /**
-     * Calculate whose turn it is based on the number of moves so far
-     *
-     * @return SLOT_PLAYER or SLOT_OPPONENT depending on whose turn it is
-     */
-    int getWhoseMove() {
-
-        return (moves & 1) == 0 ? SLOT_PLAYER : SLOT_OPPONENT;
-    }
-
-    boolean isValidCol(int col) {
-
-        return 0 <= col && col < COLUMNS;
+        return numMoves;
     }
 
     /**
@@ -127,7 +95,51 @@ class Position {
      */
     int getEmptySlots() {
 
-        return Position.TOTAL_SLOTS - getMoves();
+        return Position.TOTAL_SLOTS - getNumMoves();
+    }
+
+
+    /**
+     * Return unique key representing current position
+     */
+    long key() {
+
+        return board + heights;
+    }
+
+    private long MASK() {
+
+        return heights - BITBOARD_BOTTOM_ROW;
+    }
+
+    private static long TOP(int col) {
+
+        return 1L << ((col + 1) * BITBOARD_ROWS - 1);
+    }
+
+    private static long BOTTOM(int col) {
+
+        return 1L << (col * BITBOARD_ROWS);
+    }
+
+    private static long COLUMN(int col) {
+
+        return BITBOARD_FIRST_COLUMN << (col * BITBOARD_ROWS);
+    }
+
+    private long HEIGHT(int col) {
+
+        return COLUMN(col) & heights;
+    }
+
+    private static long SLOT(int col, int row) {
+
+        return 1L << (col * BITBOARD_ROWS + row);
+    }
+
+    public static boolean isValidCol(int col) {
+
+        return 0 <= col && col < COLUMNS;
     }
 
     @Override
@@ -136,10 +148,19 @@ class Position {
         StringBuilder builder = new StringBuilder();
         for (int row = ROWS - 1; row >= 0; --row) {
             for (int col = 0; col < COLUMNS; ++col) {
-                builder.append(board[col][row]);
+                builder.append(toChar(row, col));
             }
             builder.append('\n');
         }
         return builder.toString();
+    }
+
+    private char toChar(int row, int col) {
+
+        long slot = SLOT(col, row);
+        if ((slot & MASK()) == 0) {
+            return '.';
+        }
+        return (slot & board) == 0 ? 'X' : 'O';
     }
 }

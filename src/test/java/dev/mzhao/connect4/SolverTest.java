@@ -11,7 +11,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class Connect4SolverTest {
+public class SolverTest {
 
     private static Stream<Arguments> testSets() {
 
@@ -25,7 +25,7 @@ public class Connect4SolverTest {
     @MethodSource("testSets")
     void testSolver(String fileName, String testSetName, boolean useStrongSolver) {
 
-        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(120), () -> runTestFile(fileName, useStrongSolver));
+        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(60), () -> runTestFile(fileName, useStrongSolver));
     }
 
     void runTestFile(String fileName, boolean runStrongSolver) throws IOException {
@@ -41,12 +41,12 @@ public class Connect4SolverTest {
                 int expectedOutput = scanner.nextInt();
 
                 int output = solver.solve(input, runStrongSolver);
-                checkOutputs(expectedOutput, output, runStrongSolver);
+                checkOutput(expectedOutput, output, runStrongSolver);
             }
         }
     }
 
-    void checkOutputs(int expectedOutput, int output, boolean useStrongSolver) {
+    void checkOutput(int expectedOutput, int output, boolean useStrongSolver) {
 
         if (useStrongSolver) {
 

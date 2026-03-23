@@ -2,9 +2,7 @@
 
 This Java source code is published under AGPL v3 license.  
 
-It is a Java implementation of [Connect4 Game Solver by Pascal Pons](https://github.com/PascalPons/connect4).  
-
-Read the associated [step-by-step tutorial to build a perfect Connect 4 AI](http://blog.gamesolver.org) for explanations.
+It is based on [Connect4 Game Solver by Pascal Pons](http://blog.gamesolver.org) with some minor differences.  
 
 # Usage
 

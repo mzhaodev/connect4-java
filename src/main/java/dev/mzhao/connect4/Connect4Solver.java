@@ -70,7 +70,7 @@ public class Connect4Solver {
         for (int i = 0; i < moves.length(); ++i) {
 
             int col = moves.charAt(i) - '1';
-            if (!p.isValidCol(col) || !p.canPlayMove(col)) {
+            if (!Position.isValidCol(col) || !p.canPlayMove(col)) {
 
                 throw new IllegalArgumentException("Invalid move sequence " + moves);
             }
@@ -96,7 +96,7 @@ public class Connect4Solver {
             }
         }
 
-        beta = Math.min(beta, p.getEmptySlots() == 1 ? 0 : p.getEmptySlots() - 2);
+        beta = Math.min(beta, Math.max(0, p.getEmptySlots() - 2));
         alpha = Math.max(alpha, -(p.getEmptySlots() - 1));
 
         if (alpha >= beta) {

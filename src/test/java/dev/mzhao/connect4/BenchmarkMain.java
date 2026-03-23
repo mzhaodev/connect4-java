@@ -50,7 +50,7 @@ public class BenchmarkMain {
         long endTime = System.nanoTime();
         long timeNanos = endTime - startTime;
 
-        System.out.printf("Model: Column exploration order (%s)\n", useStrongSolver ? "strong" : "weak");
+        System.out.printf("Model: Bitboard (%s)\n", useStrongSolver ? "strong" : "weak");
         System.out.printf("Test Set: %s\n", testSetName);
         System.out.printf("Mean time: %,d ns\n", timeNanos / inputs.size());
         System.out.printf("Mean explored nodes: %,d\n", solver.getTotalExploredNodes() / inputs.size());
