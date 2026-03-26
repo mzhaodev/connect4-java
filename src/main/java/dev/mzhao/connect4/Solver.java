@@ -3,7 +3,7 @@ package dev.mzhao.connect4;
 /**
  * This class can be reused to score multiple positions. It is <i>not</i> thread-safe.
  */
-public class Connect4Solver {
+public class Solver {
 
     public static final int SCORE_MIN = -Position.TOTAL_SLOTS;
     public static final int SCORE_MAX = Position.TOTAL_SLOTS;
@@ -17,16 +17,14 @@ public class Connect4Solver {
         }
     }
 
+    TranspositionTable tt = new TranspositionTable();
+
     private long totalExploredNodes = 0;
 
-    public long getTotalExploredNodes() {
-
-        return totalExploredNodes;
-    }
 
     /**
-     * @see Connect4Solver#solveStrongly(String)
-     * @see Connect4Solver#solveWeakly(String)
+     * @see Solver#solveStrongly(String)
+     * @see Solver#solveWeakly(String)
      */
     public int solve(String moves, boolean strong) {
 
@@ -97,6 +95,7 @@ public class Connect4Solver {
         }
 
         beta = Math.min(beta, Math.max(0, p.getEmptySlots() - 2));
+        beta = Math.min(beta, tt.getUpperBoundOrDefault(p.key(), SCORE_MAX));
         alpha = Math.max(alpha, -(p.getEmptySlots() - 1));
 
         if (alpha >= beta) {
@@ -113,12 +112,29 @@ public class Connect4Solver {
                 p.undoMove(candidateMove);
 
                 if (candidateScore >= beta) {
-                    return beta;
+                    return candidateScore;
                 }
 
                 bestScore = Math.max(bestScore, candidateScore);
             }
         }
+        tt.set(p.key(), bestScore);
         return bestScore;
+    }
+
+    /**
+     * Get the total number of explored nodes
+     */
+    public long getTotalExploredNodes() {
+
+        return totalExploredNodes;
+    }
+
+    /**
+     * Get the fraction of entries filled in the transposition table
+     */
+    public double getTTLoadFactor() {
+
+        return tt.getLoadFactor();
     }
 }

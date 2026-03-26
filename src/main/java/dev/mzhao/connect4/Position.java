@@ -8,7 +8,8 @@ class Position {
     static final int ROWS = 6;
     static final int TOTAL_SLOTS = COLUMNS * ROWS;
 
-    private static final int BITBOARD_ROWS = ROWS + 1;
+    static final int BITBOARD_ROWS = ROWS + 1;
+
     private static final long BITBOARD_EMPTY = 0;
     private static final long BITBOARD_BOTTOM_ROW =
         IntStream.range(0, COLUMNS).mapToLong(Position::BOTTOM).reduce(0, Long::sum);

@@ -33,7 +33,7 @@ public class SolverTest {
         try (InputStream stream = getClass().getResourceAsStream(fileName);
              Scanner scanner = new Scanner(Objects.requireNonNull(stream))) {
 
-            Connect4Solver solver = new Connect4Solver();
+            Solver solver = new Solver();
 
             while (scanner.hasNext()) {
 

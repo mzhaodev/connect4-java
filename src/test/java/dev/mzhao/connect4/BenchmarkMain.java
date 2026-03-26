@@ -40,7 +40,7 @@ public class BenchmarkMain {
             }
         }
 
-        Connect4Solver solver = new Connect4Solver();
+        Solver solver = new Solver();
 
         long startTime = System.nanoTime();
         for (String input : inputs) {
@@ -50,11 +50,14 @@ public class BenchmarkMain {
         long endTime = System.nanoTime();
         long timeNanos = endTime - startTime;
 
-        System.out.printf("Model: Bitboard (%s)\n", useStrongSolver ? "strong" : "weak");
-        System.out.printf("Test Set: %s\n", testSetName);
-        System.out.printf("Mean time: %,d ns\n", timeNanos / inputs.size());
-        System.out.printf("Mean explored nodes: %,d\n", solver.getTotalExploredNodes() / inputs.size());
-        System.out.printf("Positions/s: %,.0f\n", solver.getTotalExploredNodes() * 1_000_000_000F / timeNanos);
+        System.out.printf("%-22s %s\n",
+                          "Model:",
+                          useStrongSolver ? "Transposition Table (strong)" : "Transposition Table (weak)");
+        System.out.printf("%-22s %s\n", "Test Set:", testSetName);
+        System.out.printf("%-22s %,d ns\n", "Mean time:", timeNanos / inputs.size());
+        System.out.printf("%-22s %,d\n", "Mean explored nodes:", solver.getTotalExploredNodes() / inputs.size());
+        System.out.printf("%-22s %,.0f\n", "Positions/s:", solver.getTotalExploredNodes() * 1_000_000_000F / timeNanos);
+        System.out.printf("%-22s %,.2f\n", "TT load factor:", solver.getTTLoadFactor());
         System.out.println();
     }
 }
