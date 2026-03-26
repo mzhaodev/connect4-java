@@ -33,6 +33,9 @@ class TranspositionTable {
 
     private final long[] table = new long[NUM_ENTRIES];
 
+    private long tableHits = 0;
+    private long tableMisses = 0;
+
     void set(long key, int upperBound) {
 
         int handle = idx(key);
@@ -44,8 +47,10 @@ class TranspositionTable {
         long entry = table[idx(key)];
         if (getKey(entry) == key) {
 
+            ++tableHits;
             return getUpperBound(entry);
         }
+        ++tableMisses;
         return defaultValue;
     }
 
@@ -88,5 +93,10 @@ class TranspositionTable {
             }
         }
         return (double) count / NUM_ENTRIES;
+    }
+
+    double getHitRate() {
+
+        return (double) tableHits / (tableHits + tableMisses);
     }
 }

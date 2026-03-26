@@ -18,6 +18,7 @@ public class BenchmarkMain {
         runBenchmark("End-Easy", true);
         runBenchmark("Middle-Easy", true);
         runBenchmark("Middle-Medium", true);
+        runBenchmark("Begin-Easy", true);
 
         runBenchmark("End-Easy", false);
         runBenchmark("Middle-Easy", false);
@@ -52,12 +53,13 @@ public class BenchmarkMain {
 
         System.out.printf("%-22s %s\n",
                           "Model:",
-                          useStrongSolver ? "Transposition Table (strong)" : "Transposition Table (weak)");
+                          useStrongSolver ? "Iterative Deepening (strong)" : "Iterative Deepening (weak)");
         System.out.printf("%-22s %s\n", "Test Set:", testSetName);
         System.out.printf("%-22s %,d ns\n", "Mean time:", timeNanos / inputs.size());
         System.out.printf("%-22s %,d\n", "Mean explored nodes:", solver.getTotalExploredNodes() / inputs.size());
         System.out.printf("%-22s %,.0f\n", "Positions/s:", solver.getTotalExploredNodes() * 1_000_000_000F / timeNanos);
         System.out.printf("%-22s %,.2f\n", "TT load factor:", solver.getTTLoadFactor());
+        System.out.printf("%-22s %,.2f\n", "TT hit rate:", solver.getTTHitRate());
         System.out.println();
     }
 }

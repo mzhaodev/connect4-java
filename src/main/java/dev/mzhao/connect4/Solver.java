@@ -5,8 +5,8 @@ package dev.mzhao.connect4;
  */
 public class Solver {
 
-    public static final int SCORE_MIN = -Position.TOTAL_SLOTS;
-    public static final int SCORE_MAX = Position.TOTAL_SLOTS;
+    public static final int SCORE_MIN = -Position.TOTAL_SLOTS + 7;
+    public static final int SCORE_MAX = Position.TOTAL_SLOTS - 6;
 
     private static final int[] MOVE_ORDER = new int[Position.COLUMNS];
     static {
@@ -74,12 +74,33 @@ public class Solver {
             }
             p.playMove(col);
         }
-
-        int score = solve(p, min, max);
-        return Math.clamp(score, min, max);
+        return solve(p, min, max);
     }
 
-    private int solve(Position p, int alpha, int beta) {
+    private int solve(Position p, int min, int max) {
+
+        int left = min;
+        int right = max;
+
+        while (left < right) {
+
+            int mid = left + ((right - left) >>> 1);
+            int pivot = mid < 0 ? Math.min(mid, left / 2) : Math.max(mid, right / 2);
+
+            int score = negamax(p, pivot, pivot + 1);
+            if (score <= pivot) {
+
+                right = score;
+            }
+            else {
+
+                left = score;
+            }
+        }
+        return Math.clamp(left, min, max);
+    }
+
+    private int negamax(Position p, int alpha, int beta) {
 
         ++totalExploredNodes;
 
@@ -108,7 +129,7 @@ public class Solver {
             if (p.canPlayMove(candidateMove)) {
 
                 p.playMove(candidateMove);
-                int candidateScore = -solve(p, -beta, -bestScore);
+                int candidateScore = -negamax(p, -beta, -bestScore);
                 p.undoMove(candidateMove);
 
                 if (candidateScore >= beta) {
@@ -136,5 +157,13 @@ public class Solver {
     public double getTTLoadFactor() {
 
         return tt.getLoadFactor();
+    }
+
+    /**
+     * Get the hit rate of transposition table
+     */
+    public double getTTHitRate() {
+
+        return tt.getHitRate();
     }
 }
