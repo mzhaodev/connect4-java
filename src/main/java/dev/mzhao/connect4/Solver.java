@@ -8,18 +8,20 @@ public class Solver {
     public static final int SCORE_MIN = -Position.TOTAL_SLOTS + 7;
     public static final int SCORE_MAX = Position.TOTAL_SLOTS - 6;
 
-    private static final long[] MOVE_ORDER = new long[Position.COLUMNS];
+    private static final long[] DEFAULT_COLUMN_ORDERING = new long[Position.COLUMNS];
     static {
         int right = Position.COLUMNS / 2;
         int left = right - 1;
         for (int i = 0; i < Position.COLUMNS; ++i) {
-            MOVE_ORDER[i] = BitboardUtils.column(i % 2 == 0 ? right++ : left--);
+            DEFAULT_COLUMN_ORDERING[i] = BitboardUtils.column(i % 2 == 0 ? right++ : left--);
         }
     }
 
     TranspositionTable tt = new TranspositionTable();
 
     private long totalExploredNodes = 0;
+
+    private long[] moveOrder = new long[Position.COLUMNS];
 
 
     /**
@@ -149,9 +151,12 @@ public class Solver {
         }
 
         int bestScore = alpha;
-        for (long column : MOVE_ORDER) {
+        for (long candidateSlot : getMoveOrder(p, nonLosingPossibleMoves)) {
 
-            long candidateSlot = column & nonLosingPossibleMoves;
+            if (candidateSlot == ~0) {
+                break;
+            }
+
             if (candidateSlot != BitboardUtils.EMPTY) {
 
                 p.playMoveInSlot(candidateSlot);
@@ -165,8 +170,22 @@ public class Solver {
                 bestScore = Math.max(bestScore, candidateScore);
             }
         }
+
         tt.set(p.key(), bestScore);
         return bestScore;
+    }
+
+    private long[] getMoveOrder(Position p, long moves) {
+
+        int idx = 0;
+        for (int i = 0; i < Position.COLUMNS; ++i) {
+
+            int threats = p.getThreatsIfPlaySlot(i) & ~t;
+
+        }
+//            long candidateSlot = column & nonLosingPossibleMoves;
+        moveOrder[idx] = ~0;
+        return moveOrder;
     }
 
     /**

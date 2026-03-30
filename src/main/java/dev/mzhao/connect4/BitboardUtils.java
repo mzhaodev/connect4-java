@@ -56,7 +56,7 @@ class BitboardUtils {
     }
 
     /**
-     * Get all slots that, if filled, would yield four in a row
+     * Get all slots that, if filled, would yield four in a row (including sentinel slots)
      */
     static long winningSlots(long bitboard) {
 
