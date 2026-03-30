@@ -8,12 +8,12 @@ public class Solver {
     public static final int SCORE_MIN = -Position.TOTAL_SLOTS + 7;
     public static final int SCORE_MAX = Position.TOTAL_SLOTS - 6;
 
-    private static final int[] MOVE_ORDER = new int[Position.COLUMNS];
+    private static final long[] MOVE_ORDER = new long[Position.COLUMNS];
     static {
         int right = Position.COLUMNS / 2;
         int left = right - 1;
         for (int i = 0; i < Position.COLUMNS; ++i) {
-            MOVE_ORDER[i] = i % 2 == 0 ? right++ : left--;
+            MOVE_ORDER[i] = BitboardUtils.column(i % 2 == 0 ? right++ : left--);
         }
     }
 
@@ -79,6 +79,11 @@ public class Solver {
 
     private int solve(Position p, int min, int max) {
 
+        if (p.hasWinningMove()) {
+
+            return p.getEmptySlotsCount();
+        }
+
         int left = min;
         int right = max;
 
@@ -100,37 +105,58 @@ public class Solver {
         return Math.clamp(left, min, max);
     }
 
+    /**
+     * @param p a non-terminal position with no winning moves
+     */
     private int negamax(Position p, int alpha, int beta) {
 
         ++totalExploredNodes;
 
-        if (p.getEmptySlots() == 0) {
+        if (p.getEmptySlotsCount() == 0) {
+
             return 0;
         }
 
-        for (int i = 0; i < Position.COLUMNS; ++i) {
+        final int scoreIfAnyMoveLoses = -(p.getEmptySlotsCount() - 1);
 
-            if (p.canPlayMove(i) && p.isWinningMove(i)) {
-                return p.getEmptySlots();
-            }
+        long possibleMoves = p.getPossibleMoves();
+        long opponentThreats = p.getOpponentThreats();
+
+        long forcedMoves = possibleMoves & opponentThreats;
+        if (BitboardUtils.hasTwoOrMore(forcedMoves)) {
+
+            return scoreIfAnyMoveLoses;
         }
 
-        beta = Math.min(beta, Math.max(0, p.getEmptySlots() - 2));
+        long losingSlots = (opponentThreats & ~BitboardUtils.TOP_ROW) >>> 1;
+        long nonLosingPossibleMoves = possibleMoves & ~losingSlots;
+        if (forcedMoves != BitboardUtils.EMPTY) {
+
+            nonLosingPossibleMoves &= forcedMoves;
+        }
+
+        if (nonLosingPossibleMoves == BitboardUtils.EMPTY) {
+
+            return scoreIfAnyMoveLoses;
+        }
+
+        beta = Math.min(beta, Math.max(0, p.getEmptySlotsCount() - 2));
         beta = Math.min(beta, tt.getUpperBoundOrDefault(p.key(), SCORE_MAX));
-        alpha = Math.max(alpha, -(p.getEmptySlots() - 1));
+        alpha = Math.max(alpha, Math.min(0, scoreIfAnyMoveLoses + 2));
 
         if (alpha >= beta) {
             return beta;
         }
 
         int bestScore = alpha;
-        for (int candidateMove : MOVE_ORDER) {
+        for (long column : MOVE_ORDER) {
 
-            if (p.canPlayMove(candidateMove)) {
+            long candidateSlot = column & nonLosingPossibleMoves;
+            if (candidateSlot != BitboardUtils.EMPTY) {
 
-                p.playMove(candidateMove);
+                p.playMoveInSlot(candidateSlot);
                 int candidateScore = -negamax(p, -beta, -bestScore);
-                p.undoMove(candidateMove);
+                p.undoMoveInSlot(candidateSlot);
 
                 if (candidateScore >= beta) {
                     return candidateScore;
@@ -165,5 +191,10 @@ public class Solver {
     public double getTTHitRate() {
 
         return tt.getHitRate();
+    }
+
+    public void resetTT() {
+
+        tt.reset();
     }
 }

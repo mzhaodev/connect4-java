@@ -1,5 +1,6 @@
 package dev.mzhao.connect4;
 
+import java.util.Arrays;
 class TranspositionTable {
 
     private static final int TABLE_SIZE_MIB = 64;
@@ -8,7 +9,7 @@ class TranspositionTable {
 
     private static final int INDEX_SIZE = Long.numberOfTrailingZeros(NUM_ENTRIES);
 
-    private static final int KEY_SIZE = Position.COLUMNS * Position.BITBOARD_ROWS;
+    private static final int KEY_SIZE = Position.COLUMNS * BitboardUtils.ROWS;
     private static final int UPPER_BOUND_SIZE = ENTRY_SIZE - KEY_SIZE;
 
     private static final long GOLDEN_GAMMA = 0x9e3779b97f4a7c15L;
@@ -98,5 +99,10 @@ class TranspositionTable {
     double getHitRate() {
 
         return (double) tableHits / (tableHits + tableMisses);
+    }
+
+    void reset() {
+
+        Arrays.fill(table, 0);
     }
 }

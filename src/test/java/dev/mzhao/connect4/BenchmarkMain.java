@@ -42,23 +42,29 @@ public class BenchmarkMain {
         }
 
         Solver solver = new Solver();
+        double totalLoadFactor = 0;
 
-        long startTime = System.nanoTime();
+        long timeNanos = 0;
         for (String input : inputs) {
 
-            solver.solve(input, useStrongSolver);
-        }
-        long endTime = System.nanoTime();
-        long timeNanos = endTime - startTime;
+            solver.resetTT();
 
-        System.out.printf("%-22s %s\n",
-                          "Model:",
-                          useStrongSolver ? "Iterative Deepening (strong)" : "Iterative Deepening (weak)");
+            long startTime = System.nanoTime();
+            solver.solve(input, useStrongSolver);
+            long endTime = System.nanoTime();
+            timeNanos += endTime - startTime;
+
+            totalLoadFactor += solver.getTTLoadFactor();
+        }
+
+        System.out.printf("%-22s %s%s\n",
+                          "Model:", "Skipping losing moves ",
+                          useStrongSolver ? "(strong)" : "(weak)");
         System.out.printf("%-22s %s\n", "Test Set:", testSetName);
         System.out.printf("%-22s %,d ns\n", "Mean time:", timeNanos / inputs.size());
         System.out.printf("%-22s %,d\n", "Mean explored nodes:", solver.getTotalExploredNodes() / inputs.size());
         System.out.printf("%-22s %,.0f\n", "Positions/s:", solver.getTotalExploredNodes() * 1_000_000_000F / timeNanos);
-        System.out.printf("%-22s %,.2f\n", "TT load factor:", solver.getTTLoadFactor());
+        System.out.printf("%-22s %,.5f\n", "Mean TT load factor:", totalLoadFactor / inputs.size());
         System.out.printf("%-22s %,.2f\n", "TT hit rate:", solver.getTTHitRate());
         System.out.println();
     }

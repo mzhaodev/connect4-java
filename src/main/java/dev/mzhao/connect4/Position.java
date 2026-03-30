@@ -1,28 +1,19 @@
 package dev.mzhao.connect4;
 
-import java.util.stream.IntStream;
-
 class Position {
 
     static final int COLUMNS = 7;
     static final int ROWS = 6;
     static final int TOTAL_SLOTS = COLUMNS * ROWS;
 
-    static final int BITBOARD_ROWS = ROWS + 1;
-
-    private static final long BITBOARD_EMPTY = 0;
-    private static final long BITBOARD_BOTTOM_ROW =
-        IntStream.range(0, COLUMNS).mapToLong(Position::BOTTOM).reduce(0, Long::sum);
-    private static final long BITBOARD_FIRST_COLUMN = 2 * TOP(0) - 1;
-
     /**
      * Bitmask of the pieces placed by the next player to move
      */
-    private long board = BITBOARD_EMPTY;
+    private long board = BitboardUtils.EMPTY;
     /**
      * Bitmask of the bottom-most empty cell in each column
      */
-    private long heights = BITBOARD_BOTTOM_ROW;
+    private long heights = BitboardUtils.BOTTOM_ROW;
     private int numMoves = 0;
 
     /**
@@ -33,7 +24,7 @@ class Position {
      */
     boolean canPlayMove(int col) {
 
-        return (heights & TOP(col)) == 0;
+        return (heights & BitboardUtils.top(col)) == 0;
     }
 
     /**
@@ -43,44 +34,50 @@ class Position {
      */
     void playMove(int col) {
 
-        board ^= MASK();
-        heights += HEIGHT(col);
+        board ^= mask();
+        heights += heightOfColumn(col);
         ++numMoves;
     }
 
     /**
-     * "Undo" the last move in the specified column.
-     *
-     * @param col the most recent column to be played
+     * Add a move to the position in the specified slot
      */
-    void undoMove(int col) {
+    void playMoveInSlot(long slot) {
 
-        heights -= HEIGHT(col) >>> 1;
-        board ^= MASK();
+        board ^= mask();
+        heights += slot;
+        ++numMoves;
+    }
+
+    /**
+     * "Undo" the last move in the specified slot.
+     *
+     * @param slot the most recent slot that was played
+     */
+    void undoMoveInSlot(long slot) {
+
+        heights -= slot;
+        board ^= mask();
         --numMoves;
     }
 
-
     /**
-     * Return whether the current player can instantly win the game by playing in the specified
-     * column.
-     *
-     * @param col the column to move
-     * @return true, if the current player can form four in a row by playing in this column
+     * Return whether the current player can instantly win the game on the next move
+     * @return true, if the current player can form four in a row on the next move
      */
-    boolean isWinningMove(int col) {
+    boolean hasWinningMove() {
 
-        long bitboard = board | HEIGHT(col);
-        return checkFourInARow(bitboard, BITBOARD_ROWS)     //
-            || checkFourInARow(bitboard, BITBOARD_ROWS - 1) //
-            || checkFourInARow(bitboard, BITBOARD_ROWS + 1) //
-            || checkFourInARow(bitboard, 1);
+        return BitboardUtils.winningMoves(board, heights) != BitboardUtils.EMPTY;
     }
 
-    private static boolean checkFourInARow(long bitboard, int offset) {
+    long getPossibleMoves() {
 
-        long x = bitboard & (bitboard >>> offset);
-        return (x & (x >>> (2 * offset))) != BITBOARD_EMPTY;
+        return BitboardUtils.possibleMoves(heights);
+    }
+
+    long getOpponentThreats() {
+
+        return BitboardUtils.winningSlots(mask() & ~board);
     }
 
     /**
@@ -94,11 +91,10 @@ class Position {
     /**
      * @return The number of empty slots in the position
      */
-    int getEmptySlots() {
+    int getEmptySlotsCount() {
 
         return Position.TOTAL_SLOTS - getNumMoves();
     }
-
 
     /**
      * Return unique key representing current position
@@ -108,37 +104,17 @@ class Position {
         return board + heights;
     }
 
-    private long MASK() {
+    private long mask() {
 
-        return heights - BITBOARD_BOTTOM_ROW;
+        return BitboardUtils.mask(heights);
     }
 
-    private static long TOP(int col) {
+    private long heightOfColumn(int col) {
 
-        return 1L << ((col + 1) * BITBOARD_ROWS - 1);
+        return BitboardUtils.heightOfColumn(heights, col);
     }
 
-    private static long BOTTOM(int col) {
-
-        return 1L << (col * BITBOARD_ROWS);
-    }
-
-    private static long COLUMN(int col) {
-
-        return BITBOARD_FIRST_COLUMN << (col * BITBOARD_ROWS);
-    }
-
-    private long HEIGHT(int col) {
-
-        return COLUMN(col) & heights;
-    }
-
-    private static long SLOT(int col, int row) {
-
-        return 1L << (col * BITBOARD_ROWS + row);
-    }
-
-    public static boolean isValidCol(int col) {
+    static boolean isValidCol(int col) {
 
         return 0 <= col && col < COLUMNS;
     }
@@ -158,10 +134,10 @@ class Position {
 
     private char toChar(int row, int col) {
 
-        long slot = SLOT(col, row);
-        if ((slot & MASK()) == 0) {
+        long slot = BitboardUtils.slot(col, row);
+        if ((slot & mask()) == 0) {
             return '.';
         }
-        return (slot & board) == 0 ? 'X' : 'O';
+        return (slot & board) == 0 ? 'O' : 'X';
     }
 }

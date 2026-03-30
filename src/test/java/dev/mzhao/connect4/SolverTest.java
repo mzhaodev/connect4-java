@@ -39,8 +39,8 @@ public class SolverTest {
 
                 String input = scanner.next();
                 int expectedOutput = scanner.nextInt();
-
                 int output = solver.solve(input, runStrongSolver);
+
                 checkOutput(expectedOutput, output, runStrongSolver);
             }
         }
