@@ -41,7 +41,9 @@ public class SolverTest {
                 int expectedOutput = scanner.nextInt();
                 int output = solver.solve(input, runStrongSolver);
 
+                System.out.print("Test: " + input);
                 checkOutput(expectedOutput, output, runStrongSolver);
+                System.out.println(" PASSED");
             }
         }
     }

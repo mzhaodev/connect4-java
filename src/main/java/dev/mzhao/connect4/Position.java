@@ -75,9 +75,20 @@ class Position {
         return BitboardUtils.possibleMoves(heights);
     }
 
+    /**
+     * May include sentinel slots or slots already played
+     */
     long getOpponentThreats() {
 
         return BitboardUtils.winningSlots(mask() & ~board);
+    }
+
+    /**
+     * May include sentinel slots, doesn't include slots already played
+     */
+    long getRealThreatsIfPlaySlot(long slot) {
+
+        return BitboardUtils.winningSlots(board | slot) & ~mask() & BitboardUtils.PLAYABLE_SPACE;
     }
 
     /**

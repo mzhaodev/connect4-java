@@ -11,6 +11,7 @@ class BitboardUtils {
     static final long BOTTOM_ROW =
         IntStream.range(0, Position.COLUMNS).mapToLong(BitboardUtils::bottom).reduce(0, Long::sum);
     static final long TOP_ROW = BOTTOM_ROW << Position.ROWS;
+    static final long PLAYABLE_SPACE = TOP_ROW - BOTTOM_ROW;
 
     static long top(int col) {
 
@@ -52,11 +53,11 @@ class BitboardUtils {
 
     static long possibleMoves(long heights) {
 
-        return heights & ~TOP_ROW;
+        return heights & PLAYABLE_SPACE;
     }
 
     /**
-     * Get all slots that, if filled, would yield four in a row
+     * Get all slots that, if filled, would yield four in a row (including sentinel slots)
      */
     static long winningSlots(long bitboard) {
 
@@ -84,6 +85,19 @@ class BitboardUtils {
     static boolean hasTwoOrMore(long bitboard) {
 
         return (bitboard & (bitboard - 1)) != 0;
+    }
+
+    public static String toString(long bitboard) {
+
+        StringBuilder builder = new StringBuilder();
+        for (int row = ROWS - 1; row >= 0; --row) {
+            for (int col = 0; col < Position.COLUMNS; ++col) {
+                long slot = slot(col, row);
+                builder.append((slot & bitboard) == 0 ? 'O' : 'X');
+            }
+            builder.append('\n');
+        }
+        return builder.toString();
     }
 
     private BitboardUtils() {

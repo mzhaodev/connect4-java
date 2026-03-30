@@ -1,5 +1,7 @@
 package dev.mzhao.connect4;
 
+import java.util.stream.Stream;
+
 /**
  * This class can be reused to score multiple positions. It is <i>not</i> thread-safe.
  */
@@ -8,19 +10,11 @@ public class Solver {
     public static final int SCORE_MIN = -Position.TOTAL_SLOTS + 7;
     public static final int SCORE_MAX = Position.TOTAL_SLOTS - 6;
 
-    private static final long[] MOVE_ORDER = new long[Position.COLUMNS];
-    static {
-        int right = Position.COLUMNS / 2;
-        int left = right - 1;
-        for (int i = 0; i < Position.COLUMNS; ++i) {
-            MOVE_ORDER[i] = BitboardUtils.column(i % 2 == 0 ? right++ : left--);
-        }
-    }
-
     TranspositionTable tt = new TranspositionTable();
 
-    private long totalExploredNodes = 0;
+    MoveList[] moveLists = Stream.generate(MoveList::new).limit(Position.TOTAL_SLOTS).toArray(MoveList[] ::new);
 
+    private long totalExploredNodes = 0;
 
     /**
      * @see Solver#solveStrongly(String)
@@ -128,7 +122,7 @@ public class Solver {
             return scoreIfAnyMoveLoses;
         }
 
-        long losingSlots = (opponentThreats & ~BitboardUtils.TOP_ROW) >>> 1;
+        long losingSlots = (opponentThreats & BitboardUtils.PLAYABLE_SPACE) >>> 1;
         long nonLosingPossibleMoves = possibleMoves & ~losingSlots;
         if (forcedMoves != BitboardUtils.EMPTY) {
 
@@ -149,9 +143,13 @@ public class Solver {
         }
 
         int bestScore = alpha;
-        for (long column : MOVE_ORDER) {
 
-            long candidateSlot = column & nonLosingPossibleMoves;
+        MoveList moveList = moveLists[p.getNumMoves()];
+        moveList.calculateMoveOrder(p, nonLosingPossibleMoves);
+
+        for (int i = 0; i < moveList.size(); ++i) {
+
+            long candidateSlot = moveList.get(i);
             if (candidateSlot != BitboardUtils.EMPTY) {
 
                 p.playMoveInSlot(candidateSlot);
@@ -165,6 +163,7 @@ public class Solver {
                 bestScore = Math.max(bestScore, candidateScore);
             }
         }
+
         tt.set(p.key(), bestScore);
         return bestScore;
     }

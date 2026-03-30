@@ -1,6 +1,7 @@
 package dev.mzhao.connect4;
 
 import java.util.Arrays;
+
 class TranspositionTable {
 
     private static final int TABLE_SIZE_MIB = 64;

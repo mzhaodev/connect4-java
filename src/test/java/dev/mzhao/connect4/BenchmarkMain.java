@@ -19,10 +19,15 @@ public class BenchmarkMain {
         runBenchmark("Middle-Easy", true);
         runBenchmark("Middle-Medium", true);
         runBenchmark("Begin-Easy", true);
+        runBenchmark("Begin-Medium", true);
+        runBenchmark("Begin-Hard", true);
 
         runBenchmark("End-Easy", false);
         runBenchmark("Middle-Easy", false);
         runBenchmark("Middle-Medium", false);
+        runBenchmark("Begin-Easy", false);
+        runBenchmark("Begin-Medium", false);
+        runBenchmark("Begin-Hard", false);
     }
 
     private static void runBenchmark(String testSetName, boolean useStrongSolver) throws IOException {
@@ -57,9 +62,7 @@ public class BenchmarkMain {
             totalLoadFactor += solver.getTTLoadFactor();
         }
 
-        System.out.printf("%-22s %s%s\n",
-                          "Model:", "Skipping losing moves ",
-                          useStrongSolver ? "(strong)" : "(weak)");
+        System.out.printf("%-22s %s%s\n", "Model:", "Better move ordering ", useStrongSolver ? "(strong)" : "(weak)");
         System.out.printf("%-22s %s\n", "Test Set:", testSetName);
         System.out.printf("%-22s %,d ns\n", "Mean time:", timeNanos / inputs.size());
         System.out.printf("%-22s %,d\n", "Mean explored nodes:", solver.getTotalExploredNodes() / inputs.size());
