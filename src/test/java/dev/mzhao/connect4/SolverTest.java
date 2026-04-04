@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Scanner;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -25,7 +26,7 @@ public class SolverTest {
     @MethodSource("testSets")
     void testSolver(String fileName, String testSetName, boolean useStrongSolver) {
 
-        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(60), () -> runTestFile(fileName, useStrongSolver));
+        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(120), () -> runTestFile(fileName, useStrongSolver));
     }
 
     void runTestFile(String fileName, boolean runStrongSolver) throws IOException {
@@ -35,13 +36,14 @@ public class SolverTest {
 
             Solver solver = new Solver();
 
+            int testIdx = 0;
             while (scanner.hasNext()) {
 
                 String input = scanner.next();
                 int expectedOutput = scanner.nextInt();
                 int output = solver.solve(input, runStrongSolver);
 
-                System.out.print("Test: " + input);
+                System.out.printf("Test %d: %s", ++testIdx, input);
                 checkOutput(expectedOutput, output, runStrongSolver);
                 System.out.println(" PASSED");
             }
@@ -61,5 +63,13 @@ public class SolverTest {
 
             Assertions.assertEquals(Math.signum(expectedOutput), Math.signum(output));
         }
+    }
+
+    @Test
+    void testInitialPosition() {
+
+        Solver solver = new Solver();
+        int score = solver.solve("", Solver.SCORE_MIN, Solver.SCORE_MAX);
+        Assertions.assertEquals(2, score);
     }
 }

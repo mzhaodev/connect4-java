@@ -10,11 +10,10 @@ public class Solver {
     public static final int SCORE_MIN = -Position.TOTAL_SLOTS + 7;
     public static final int SCORE_MAX = Position.TOTAL_SLOTS - 6;
 
-    TranspositionTable tt = new TranspositionTable();
+    private final Statistics statistics = new Statistics();
+    TranspositionTable tt = new TranspositionTable(statistics);
 
     MoveList[] moveLists = Stream.generate(MoveList::new).limit(Position.TOTAL_SLOTS).toArray(MoveList[] ::new);
-
-    private long totalExploredNodes = 0;
 
     /**
      * @see Solver#solveStrongly(String)
@@ -84,7 +83,7 @@ public class Solver {
         while (left < right) {
 
             int mid = left + ((right - left) >>> 1);
-            int pivot = mid < 0 ? Math.min(mid, left / 2) : Math.max(mid, right / 2);
+            int pivot = mid <= 0 ? Math.min(mid, left / 2) : Math.max(mid, right / 2);
 
             int score = negamax(p, pivot, pivot + 1);
             if (score <= pivot) {
@@ -104,7 +103,7 @@ public class Solver {
      */
     private int negamax(Position p, int alpha, int beta) {
 
-        ++totalExploredNodes;
+        statistics.incrementExploredNodes();
 
         if (p.getEmptySlotsCount() == 0) {
 
@@ -135,7 +134,7 @@ public class Solver {
         }
 
         beta = Math.min(beta, Math.max(0, p.getEmptySlotsCount() - 2));
-        beta = Math.min(beta, tt.getUpperBoundOrDefault(p.key(), SCORE_MAX));
+        beta = Math.min(beta, tt.getValueOrDefault(p.key(), SCORE_MAX));
         alpha = Math.max(alpha, Math.min(0, scoreIfAnyMoveLoses + 2));
 
         if (alpha >= beta) {
@@ -164,7 +163,7 @@ public class Solver {
             }
         }
 
-        tt.set(p.key(), bestScore);
+        tt.set(p.key(), bestScore, p.getNumMoves());
         return bestScore;
     }
 
@@ -173,7 +172,7 @@ public class Solver {
      */
     public long getTotalExploredNodes() {
 
-        return totalExploredNodes;
+        return statistics.getExploredNodes();
     }
 
     /**
@@ -184,12 +183,32 @@ public class Solver {
         return tt.getLoadFactor();
     }
 
+    public int getTTEntriesUsed() {
+
+        return tt.getEntriesUsed();
+    }
+
+    public int getTTCapacity() {
+
+        return tt.getCapacity();
+    }
+
+    Statistics getStatistics() {
+
+        return statistics;
+    }
+
     /**
      * Get the hit rate of transposition table
      */
     public double getTTHitRate() {
 
-        return tt.getHitRate();
+        return statistics.getTTHitRate();
+    }
+
+    public long getTTCacheEvictions() {
+
+        return statistics.getTTCacheEvictions();
     }
 
     public void resetTT() {

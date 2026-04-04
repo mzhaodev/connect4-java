@@ -112,7 +112,7 @@ class Position {
      */
     long key() {
 
-        return board + heights;
+        return (board + heights) >>> 1;
     }
 
     private long mask() {

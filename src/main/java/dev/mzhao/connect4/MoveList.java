@@ -11,30 +11,36 @@ class MoveList {
         }
     }
 
-    private final long[] moves = new long[2 * Position.COLUMNS];
+    private static final int MOVE_BITS = 48;
+    private static final int ORDER_BITS = 3;
+    private static final long MOVE_MASK = (1L << MOVE_BITS) - 1;
+
+    private final long[] moves = new long[Position.COLUMNS];
     private int size;
 
     void calculateMoveOrder(Position p, long candidateMoves) {
 
         size = 0;
-        for (int i = 0; i < Position.COLUMNS; ++i) {
+        for (int i = 0; i < DEFAULT_COLUMN_ORDERING.length; ++i) {
 
-            long move = DEFAULT_COLUMN_ORDERING[i] & candidateMoves;
+            long column = DEFAULT_COLUMN_ORDERING[i];
+
+            long move = column & candidateMoves;
             if (move == BitboardUtils.EMPTY) {
 
                 continue;
             }
 
-            int numThreats = Long.bitCount(p.getRealThreatsIfPlaySlot(move));
-            int idx = 2 * size;
-            while (idx > 0 && numThreats > moves[idx - 1]) {
+            // This is a good candidate for Vector API
+            int priority = Long.bitCount(p.getRealThreatsIfPlaySlot(move));
+            long packedMove = packMove(move, priority, i);
+            int idx = size;
+            while (idx > 0 && packedMove > moves[idx - 1]) {
 
-                moves[idx] = moves[idx - 2];
-                moves[idx + 1] = moves[idx - 1];
-                idx -= 2;
+                moves[idx] = moves[idx - 1];
+                --idx;
             }
-            moves[idx] = move;
-            moves[idx + 1] = numThreats;
+            moves[idx] = packedMove;
             ++size;
         }
     }
@@ -46,6 +52,13 @@ class MoveList {
 
     long get(int idx) {
 
-        return moves[2 * idx];
+        return moves[idx] & MOVE_MASK;
+    }
+
+    private static long packMove(long move, int priority, int order) {
+
+        return ((long) priority << (MOVE_BITS + ORDER_BITS))   //
+            | ((long) (Position.COLUMNS - order) << MOVE_BITS) //
+            | move;
     }
 }

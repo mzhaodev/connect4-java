@@ -13,7 +13,7 @@ public class BenchmarkMain {
     /**
      * These benchmarks are unreliable and serve as a rough estimate of performance.
      */
-    static void main() throws IOException {
+    public static void main(String[] args) throws IOException {
 
         runBenchmark("End-Easy", true);
         runBenchmark("Middle-Easy", true);
@@ -47,28 +47,63 @@ public class BenchmarkMain {
         }
 
         Solver solver = new Solver();
-        double totalLoadFactor = 0;
+        Statistics statistics = solver.getStatistics();
+        long totalExploredNodes = 0;
+        long totalTTEntriesUsed = 0;
+        long totalTTCacheEvictions = 0;
+        long totalTTHits = 0;
+        long totalTTMisses = 0;
+        long totalTTSets = 0;
+        long totalTTGets = 0;
+        long totalTTOptimalHits = 0;
 
         long timeNanos = 0;
         for (String input : inputs) {
 
             solver.resetTT();
+            statistics.reset();
 
             long startTime = System.nanoTime();
             solver.solve(input, useStrongSolver);
             long endTime = System.nanoTime();
             timeNanos += endTime - startTime;
 
-            totalLoadFactor += solver.getTTLoadFactor();
+            totalExploredNodes += statistics.getExploredNodes();
+            totalTTEntriesUsed += solver.getTTEntriesUsed();
+            totalTTCacheEvictions += statistics.getTTCacheEvictions();
+            totalTTHits += statistics.getTTHits();
+            totalTTMisses += statistics.getTTMisses();
+            totalTTSets += statistics.getTTSets();
+            totalTTGets += statistics.getTTGets();
+            totalTTOptimalHits += statistics.getTTOptimalHits();
         }
 
-        System.out.printf("%-22s %s%s\n", "Model:", "Better move ordering ", useStrongSolver ? "(strong)" : "(weak)");
+        double meanTTEntriesUsed = (double) totalTTEntriesUsed / inputs.size();
+        double ttHitRate = totalTTHits + totalTTMisses == 0 ? 0 : (double) totalTTHits / (totalTTHits + totalTTMisses);
+        double ttOptimalHitRate = totalTTGets == 0 ? 0 : (double) totalTTOptimalHits / totalTTGets;
+
+        System.out
+            .printf("%-22s %s%s\n", "Model:", "Two-tier transposition table ", useStrongSolver ? "(strong)" : "(weak)");
         System.out.printf("%-22s %s\n", "Test Set:", testSetName);
         System.out.printf("%-22s %,d ns\n", "Mean time:", timeNanos / inputs.size());
-        System.out.printf("%-22s %,d\n", "Mean explored nodes:", solver.getTotalExploredNodes() / inputs.size());
-        System.out.printf("%-22s %,.0f\n", "Positions/s:", solver.getTotalExploredNodes() * 1_000_000_000F / timeNanos);
-        System.out.printf("%-22s %,.5f\n", "Mean TT load factor:", totalLoadFactor / inputs.size());
-        System.out.printf("%-22s %,.2f\n", "TT hit rate:", solver.getTTHitRate());
+        if (Config.STATISTICS_ENABLED) {
+
+            System.out.printf("%-22s %,d\n", "Mean explored nodes:", totalExploredNodes / inputs.size());
+            System.out.printf("%-22s %,.0f\n", "Positions/s:", totalExploredNodes * 1_000_000_000F / timeNanos);
+            System.out.printf("%-22s %,.1f/%,d (%.2f%%)\n",
+                              "Mean TT load factor:",
+                              meanTTEntriesUsed,
+                              solver.getTTCapacity(),
+                              100 * meanTTEntriesUsed / solver.getTTCapacity());
+            System.out.printf("%-22s %,d\n", "Mean cache evictions:", totalTTCacheEvictions / inputs.size());
+            System.out.printf("%-22s %,d\n", "Mean TT sets:", totalTTSets / inputs.size());
+            System.out.printf("%-22s %,d\n", "Mean TT gets:", totalTTGets / inputs.size());
+            System.out.printf("%-22s %,.5f\n", "TT hit rate:", ttHitRate);
+            if (Config.STATISTICS_CALCULATE_HIT_RATE_OPTIMAL) {
+
+                System.out.printf("%-22s %,.5f\n", "TT optimal hit rate:", ttOptimalHitRate);
+            }
+        }
         System.out.println();
     }
 }

@@ -4,106 +4,154 @@ import java.util.Arrays;
 
 class TranspositionTable {
 
-    private static final int TABLE_SIZE_MIB = 64;
-    private static final int ENTRY_SIZE = Long.SIZE;
-    private static final int NUM_ENTRIES = (TABLE_SIZE_MIB * 1024 * 1024) / Long.BYTES;
+    private static final int NUM_ENTRIES = (Config.TABLE_SIZE_MIB * 1024 * 1024) / Long.BYTES;
+    private static final int NUM_ROWS = NUM_ENTRIES / 2;
 
-    private static final int INDEX_SIZE = Long.numberOfTrailingZeros(NUM_ENTRIES);
-
-    private static final int KEY_SIZE = Position.COLUMNS * BitboardUtils.ROWS;
-    private static final int UPPER_BOUND_SIZE = ENTRY_SIZE - KEY_SIZE;
+    private static final int INDEX_SIZE = Long.numberOfTrailingZeros(NUM_ROWS);
 
     private static final long GOLDEN_GAMMA = 0x9e3779b97f4a7c15L;
 
-    static {
-
-        if (Long.bitCount(TABLE_SIZE_MIB) != 1) {
-
-            throw new ExceptionInInitializerError("TABLE_SIZE_MIB must be a power of 2.");
-        }
-
-        if ((1L << UPPER_BOUND_SIZE) <= fromUpperBound(Solver.SCORE_MAX)) {
-
-            throw new ExceptionInInitializerError("Max score does not fit in the transposition table.");
-        }
-
-        if ((1L << UPPER_BOUND_SIZE) <= fromUpperBound(Solver.SCORE_MIN)) {
-
-            throw new ExceptionInInitializerError("Min score does not fit in the transposition table.");
-        }
-    }
-
     private final long[] table = new long[NUM_ENTRIES];
 
-    private long tableHits = 0;
-    private long tableMisses = 0;
+    private final Statistics statistics;
 
-    void set(long key, int upperBound) {
+    TranspositionTable(Statistics statistics) {
 
-        int handle = idx(key);
-        table[handle] = createEntry(key, upperBound);
+        this.statistics = statistics;
     }
 
-    int getUpperBoundOrDefault(long key, int defaultValue) {
+    void set(long key, int value, int numMoves) {
 
-        long entry = table[idx(key)];
-        if (getKey(entry) == key) {
+        statistics.recordTTSet(key);
 
-            ++tableHits;
-            return getUpperBound(entry);
+        int handle = 2 * hash(key);
+
+        long packed1 = table[handle];
+        long key1 = Entry.getKey(packed1);
+        int value1 = Entry.getValue(packed1);
+
+        long packed2 = table[handle + 1];
+        long key2 = Entry.getKey(packed2);
+        int value2 = Entry.getValue(packed2);
+
+        if (key == key2) {
+            if (value < value2) {
+                table[handle + 1] = Entry.toLong(key, value, numMoves);
+            }
+            return;
         }
-        ++tableMisses;
+
+        if (key != key1 || value < value1) {
+
+            table[handle] = Entry.toLong(key, value, numMoves);
+
+            if (key != key1 && key1 != 0) {
+
+                if (key2 != 0 && key1 != key2) {
+                    statistics.incrementTTCacheEvictions();
+                }
+                if (key2 == 0 || Entry.getNumMoves(packed1) <= Entry.getNumMoves(packed2)) {
+                    table[handle + 1] = packed1;
+                }
+            }
+        }
+    }
+
+    int getValueOrDefault(long key, int defaultValue) {
+
+        statistics.recordTTGet(key);
+
+        int handle = 2 * hash(key);
+
+        long packed1 = table[handle];
+        long key1 = Entry.getKey(packed1);
+        if (key1 == key) {
+
+            statistics.incrementTTHits();
+            return Entry.getValue(packed1);
+        }
+
+        long packed2 = table[handle + 1];
+        long key2 = Entry.getKey(packed2);
+        if (key2 == key) {
+
+            statistics.incrementTTHits();
+            return Entry.getValue(packed2);
+        }
+        statistics.incrementTTMisses();
         return defaultValue;
     }
 
-    private int idx(long key) {
+    private int hash(long key) {
 
         return (int) ((key * GOLDEN_GAMMA) >>> (Long.SIZE - INDEX_SIZE));
     }
 
-    private static long getKey(long entry) {
+    int getEntriesUsed() {
 
-        return entry >>> UPPER_BOUND_SIZE;
+        int count = 0;
+        for (long tableEntry : table) {
+
+            if (tableEntry != 0) {
+                ++count;
+            }
+        }
+        return count;
     }
 
-    private static int getUpperBound(long entry) {
+    int getCapacity() {
 
-        return toUpperBound(entry & ((1L << UPPER_BOUND_SIZE) - 1));
-    }
-
-    private static long createEntry(long key, int upperBound) {
-
-        return (key << UPPER_BOUND_SIZE) + fromUpperBound(upperBound);
-    }
-
-    private static long fromUpperBound(int upperBound) {
-
-        return upperBound - Solver.SCORE_MIN;
-    }
-
-    private static int toUpperBound(long bits) {
-
-        return (int) bits + Solver.SCORE_MIN;
+        return NUM_ENTRIES;
     }
 
     double getLoadFactor() {
 
-        int count = 0;
-        for (long entry : table) {
-            if (entry != 0) {
-                ++count;
-            }
-        }
-        return (double) count / NUM_ENTRIES;
-    }
-
-    double getHitRate() {
-
-        return (double) tableHits / (tableHits + tableMisses);
+        return (double) getEntriesUsed() / NUM_ENTRIES;
     }
 
     void reset() {
 
         Arrays.fill(table, 0);
+    }
+
+    static class Entry {
+
+        private static final int KEY_SIZE = 48;
+        private static final int SCORE_SIZE = 7;
+        private static final int NUM_MOVES_SIZE = 6;
+
+        private static final long KEY_MASK = (1L << KEY_SIZE) - 1;
+        private static final long SCORE_MASK = (1L << SCORE_SIZE) - 1;
+        private static final long NUM_MOVES_MASK = (1L << NUM_MOVES_SIZE) - 1;
+
+        static long toLong(long key, int value, int numMoves) {
+
+            return ((long) numMoves << (KEY_SIZE + SCORE_SIZE)) | (key << SCORE_SIZE) | packScore(value);
+        }
+
+        static long getKey(long packed) {
+
+            return (packed >>> SCORE_SIZE) & KEY_MASK;
+        }
+
+        static int getValue(long packed) {
+
+            return unpackScore(packed & SCORE_MASK);
+        }
+
+        static int getNumMoves(long packed) {
+
+            return (int) ((packed >>> (KEY_SIZE + SCORE_SIZE)) & NUM_MOVES_MASK);
+        }
+
+        private static long packScore(int score) {
+
+            return score - Solver.SCORE_MIN + 1L;
+        }
+
+        private static int unpackScore(long bits) {
+
+            return (int) bits + Solver.SCORE_MIN - 1;
+        }
     }
 }
