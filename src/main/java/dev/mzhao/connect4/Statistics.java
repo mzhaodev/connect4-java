@@ -62,15 +62,6 @@ final class Statistics {
         return Config.STATISTICS_ENABLED ? ttMisses : 0;
     }
 
-    double getTTHitRate() {
-
-        if (!Config.STATISTICS_ENABLED || ttHits + ttMisses == 0) {
-
-            return 0;
-        }
-        return (double) ttHits / (ttHits + ttMisses);
-    }
-
     void recordTTSet(long key) {
 
         if (Config.STATISTICS_ENABLED) {
@@ -113,15 +104,6 @@ final class Statistics {
     long getTTOptimalHits() {
 
         return Config.STATISTICS_ENABLED ? ttOptimalHits : 0;
-    }
-
-    double getTTOptimalHitRate() {
-
-        if (!Config.STATISTICS_CALCULATE_HIT_RATE_OPTIMAL || ttGets == 0) {
-
-            return 0;
-        }
-        return (double) ttOptimalHits / ttGets;
     }
 
     void reset() {

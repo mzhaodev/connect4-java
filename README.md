@@ -2,7 +2,7 @@
 
 This Java source code is published under AGPL v3 license.  
 
-It is based on [Connect4 Game Solver by Pascal Pons](http://blog.gamesolver.org) with some differences.  
+It is inspired by [Connect4 Game Solver by Pascal Pons](http://blog.gamesolver.org).
 
 # Usage
 

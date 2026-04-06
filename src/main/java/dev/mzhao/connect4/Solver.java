@@ -38,21 +38,21 @@ public class Solver {
     }
 
     /**
-     * Return -1, 0, or 1 for losing, drawn, or winning
+     * Return -1, 0, or 1 for losing, drawn, or winning.
      */
     public int solveWeakly(String moves) {
 
-        return solve(moves, -1, 1);
+        return Math.clamp(solve(moves, -1, 1), -1, 1);
     }
 
     /**
-     * Solve for the score of a position, clamped to a provided range.
+     * Solve for the score of a position, using fail-soft alpha-beta pruning.
      * @param moves the sequence of moves played so far.<br>e.g. "1123" means the first player
      *     played in the first column, the second player played in the first column, the first
      *     player played in the second column, and the second player played in the third column
-     * @param min the minimum number to return, must be <= max
-     * @param max the maximum number to return, must be >= min
-     * @return the score of the position, clamped to the inclusive range [min, max]
+     * @param min alpha, must be <= max
+     * @param max beta, must be >= min
+     * @return the score of the position, with fail-soft pruning
      * @throws IllegalArgumentException if moves are invalid
      */
     public int solve(String moves, int min, int max) {
@@ -67,35 +67,35 @@ public class Solver {
             }
             p.playMove(col);
         }
-        return solve(p, min, max);
+        return mtdf(p, min, max);
     }
 
-    private int solve(Position p, int min, int max) {
+    private int mtdf(Position p, int min, int max) {
 
         if (p.hasWinningMove()) {
 
             return p.getEmptySlotsCount();
         }
 
-        int left = min;
-        int right = max;
+        int g = max;
+        int upper = max;
+        int lower = min;
 
-        while (left < right) {
+        while (lower < upper) {
 
-            int mid = left + ((right - left) >>> 1);
-            int pivot = mid <= 0 ? Math.min(mid, left / 2) : Math.max(mid, right / 2);
+            int beta = Math.max(g, lower + 1);
+            g = negamax(p, beta - 1, beta);
 
-            int score = negamax(p, pivot, pivot + 1);
-            if (score <= pivot) {
+            if (g < beta) {
 
-                right = score;
+                upper = g;
             }
             else {
 
-                left = score;
+                lower = g;
             }
         }
-        return Math.clamp(left, min, max);
+        return g;
     }
 
     /**
@@ -167,22 +167,6 @@ public class Solver {
         return bestScore;
     }
 
-    /**
-     * Get the total number of explored nodes
-     */
-    public long getTotalExploredNodes() {
-
-        return statistics.getExploredNodes();
-    }
-
-    /**
-     * Get the fraction of entries filled in the transposition table
-     */
-    public double getTTLoadFactor() {
-
-        return tt.getLoadFactor();
-    }
-
     public int getTTEntriesUsed() {
 
         return tt.getEntriesUsed();
@@ -196,19 +180,6 @@ public class Solver {
     Statistics getStatistics() {
 
         return statistics;
-    }
-
-    /**
-     * Get the hit rate of transposition table
-     */
-    public double getTTHitRate() {
-
-        return statistics.getTTHitRate();
-    }
-
-    public long getTTCacheEvictions() {
-
-        return statistics.getTTCacheEvictions();
     }
 
     public void resetTT() {

@@ -104,11 +104,6 @@ class TranspositionTable {
         return NUM_ENTRIES;
     }
 
-    double getLoadFactor() {
-
-        return (double) getEntriesUsed() / NUM_ENTRIES;
-    }
-
     void reset() {
 
         Arrays.fill(table, 0);
